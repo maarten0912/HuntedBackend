@@ -9,4 +9,4 @@ Windows: `venv\Scripts\activate`
 
 ## Run application
 
-First, create `hunted` database with user and password: `hunted`
+`python app.py`

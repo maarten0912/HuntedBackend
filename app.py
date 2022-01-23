@@ -6,6 +6,8 @@ import database
 from database import db
 
 app = Flask(__name__)
+# Change secret key to random string in production
+app.secret_key = 'dev'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hunted.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.app_context().push()
@@ -13,7 +15,7 @@ app.app_context().push()
 
 # TODO: add sessions, so only hunters in the base can get locations
 @app.route('/api/locations', methods = ['GET', 'POST'])
-def getlocations():
+def locations():
     if request.method == 'GET':
         # Hunter is trying to view the coordinates
         
@@ -21,7 +23,8 @@ def getlocations():
         newlocation = database.NewLocation.query.all()
         return {"newlocations": newlocation_schema.dump(newlocation, many=True)}
 
-    elif request.method == 'POST':
+    else:
+        # POST
         # Huntee or hunter is posting their location
         newlocation = newlocation_schema.load(request.get_json(force=True), session=db.session)
         db.session.add(newlocation)
@@ -30,8 +33,6 @@ def getlocations():
 
         return 'OK', 200
             
-    return 'Method Not Allowed', 405
-
 if __name__ == '__main__':
     
     db.init_app(app)

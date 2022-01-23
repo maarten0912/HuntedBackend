@@ -35,7 +35,6 @@ class Location(db.Model):
 
 
 def registerUpdateJob():
-    import time
     import atexit
     from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -44,14 +43,44 @@ def registerUpdateJob():
     scheduler.start()
 
     # Shut down the scheduler when exiting the app
-    atexit.register(lambda: scheduler.shutdown())
+    atexit.register(scheduler.shutdown)
 
 # TODO: send also with websocket
 def updateLocations():
-    #TODO:  for all names in newlocations -> move newest to locations
-    #       make log if we have a name without an update
-    #       remove everything from newlocations
-    return None
+    import datetime
+    print(datetime.datetime.now())
+
+        newlocations = NewLocation.query.order_by(NewLocation.time.desc()).all()
+    oldlocations = Location.query.order_by(Location.time.desc()).all()
+
+    newnames = []
+    newlocs = []
+    for newlocation in newlocations:
+        if newlocation.name not in newnames:
+            newnames.append(newlocation.name)
+            newlocs.append(newlocation)
+
+    oldnames = []
+    for oldlocation in oldlocations:
+        assert oldlocation.name not in oldnames
+        oldnames.append(oldlocation.name)
+
+    notupdated = list(set(oldnames) - set(newnames))
+    if len(notupdated) > 0:
+        # TODO: put in some kind of log?
+        print("[WARNING] Found names that had no update in the last 15 minutes:")
+        for n in notupdated:
+            print(f"\t{n}")
+
+    # Delete both tables
+    db.session.query(NewLocation).delete()
+    db.session.query(Location).delete()
+
+    # Put the newest values in Locations
+    for l in newlocs:
+        db.session.add(Location(time=l.time, hunter=l.hunter, name=l.name, lat=l.lat, long=l.long))
+
+    db.session.commit()
 
 class NewLocationSchema(SQLAlchemySchema):
     class Meta:
