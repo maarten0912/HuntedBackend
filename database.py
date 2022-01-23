@@ -34,7 +34,6 @@ class Location(db.Model):
             return f"[{self.time}]\n\tHuntee {self.name}\n\t{self.lat}, {self.long}"
 
 
-# TODO: make function to remove all records before a set time
 def registerUpdateJob():
     import time
     import atexit
@@ -49,6 +48,9 @@ def registerUpdateJob():
 
 # TODO: send also with websocket
 def updateLocations():
+    #TODO:  for all names in newlocations -> move newest to locations
+    #       make log if we have a name without an update
+    #       remove everything from newlocations
     return None
 
 class NewLocationSchema(SQLAlchemySchema):
