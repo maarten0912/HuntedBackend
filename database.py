@@ -50,7 +50,7 @@ def updateLocations():
     import datetime
     print(datetime.datetime.now())
 
-        newlocations = NewLocation.query.order_by(NewLocation.time.desc()).all()
+    newlocations = NewLocation.query.order_by(NewLocation.time.desc()).all()
     oldlocations = Location.query.order_by(Location.time.desc()).all()
 
     newnames = []
