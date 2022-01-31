@@ -14,7 +14,7 @@ app.app_context().push()
 
 
 # TODO: add sessions, so only hunters in the base can get locations
-@app.route('/api/locations', methods = ['GET', 'POST'])
+@app.route('/api/locations', methods=['GET', 'POST'])
 def locations():
     if request.method == 'GET':
         # Hunter is trying to view the coordinates
@@ -32,7 +32,8 @@ def locations():
         print(newlocation)
 
         return 'OK', 200
-            
+
+
 if __name__ == '__main__':
     
     db.init_app(app)
@@ -46,7 +47,7 @@ if __name__ == '__main__':
     db.create_all()
 
     # Move newest record from newlocations to locations every 15 minutes
-    database.registerUpdateJob()
+    database.register_update_job()
 
     # For marshmallow (de)serialization
     newlocation_schema = database.NewLocationSchema()

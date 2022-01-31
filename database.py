@@ -1,7 +1,10 @@
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field
+import atexit
+from apscheduler.schedulers.background import BackgroundScheduler
 
 db = SQLAlchemy()
+
 
 # This table should contain the newest location of each device
 class NewLocation(db.Model):
@@ -17,6 +20,7 @@ class NewLocation(db.Model):
             return f"[{self.time}]\tHunter {self.name}\t{self.lat}, {self.long}"
         else:
             return f"[{self.time}]\tHuntee {self.name}\t{self.lat}, {self.long}"
+
 
 # This table should contain last sent location of each device
 class Location(db.Model):
@@ -34,19 +38,17 @@ class Location(db.Model):
             return f"[{self.time}]\n\tHuntee {self.name}\n\t{self.lat}, {self.long}"
 
 
-def registerUpdateJob():
-    import atexit
-    from apscheduler.schedulers.background import BackgroundScheduler
-
+def register_update_job():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(func=updateLocations, trigger="interval", minutes=15, start_date = "2022-01-01 12:00:00")
+    scheduler.add_job(func=update_locations, trigger="interval", minutes=15, start_date="2022-01-01 12:00:00")
     scheduler.start()
 
     # Shut down the scheduler when exiting the app
     atexit.register(scheduler.shutdown)
 
+
 # TODO: send also with websocket
-def updateLocations():
+def update_locations():
     import datetime
     print(datetime.datetime.now())
 
@@ -77,10 +79,11 @@ def updateLocations():
     db.session.query(Location).delete()
 
     # Put the newest values in Locations
-    for l in newlocs:
-        db.session.add(Location(time=l.time, hunter=l.hunter, name=l.name, lat=l.lat, long=l.long))
+    for loc in newlocs:
+        db.session.add(Location(time=loc.time, hunter=loc.hunter, name=loc.name, lat=loc.lat, long=loc.long))
 
     db.session.commit()
+
 
 class NewLocationSchema(SQLAlchemySchema):
     class Meta:
