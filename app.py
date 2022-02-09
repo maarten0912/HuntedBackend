@@ -6,8 +6,8 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, login_user, current_user, login_required
 
-import database
-from database import db
+from database import db, User, Role, NewLocation, Location, register_update_job, NewLocationSchema, LocationSchema, \
+    UserSchema
 
 app = Flask(__name__)
 # Change secret key to random string in production
@@ -22,7 +22,7 @@ login_manager = LoginManager()
 
 @login_manager.user_loader
 def load_user(username):
-    user = database.User.query.filter_by(username=username).first()
+    user = User.query.filter_by(username=username).first()
     return user
 
 
@@ -54,25 +54,25 @@ def index():
     return "Hello world", 200
 
 
-# TODO: add sessions, so only hunters in the base can get locations
 @app.route('/api/locations', methods=['GET', 'POST'])
 @login_required
 def locations():
     if request.method == 'GET':
         # Hunter is trying to view the coordinates
+        if current_user.role in {Role.admin, Role.hunter}:
+            location = Location.query.all()
+            return {"newlocations": location_schema.dump(location, many=True)}
+        else:
+            return 'You are not a hunter or admin', 401
 
-        # TODO: Change to location instead of newlocation
-        newlocation = database.NewLocation.query.all()
-        return {"newlocations": newlocation_schema.dump(newlocation, many=True)}
-
-    else:
+    elif request.method == 'POST':
         # TODO: tijd automatisch?
         # POST
         # Huntee or hunter is posting their location
-        newlocation = newlocation_schema.load(request.get_json(force=True), session=db.session)
-        db.session.add(newlocation)
+        location = newlocation_schema.load(request.get_json(force=True), session=db.session)
+        db.session.add(location)
         db.session.commit()
-        print(newlocation)
+        print(location)
 
         return 'OK', 200
 
@@ -82,19 +82,19 @@ if __name__ == '__main__':
 
     # TODO: turn on some form of authentication here
     admin = Admin(app)
-    admin.add_view(ModelView(database.Location, db.session))
-    admin.add_view(ModelView(database.NewLocation, db.session))
+    admin.add_view(ModelView(Location, db.session))
+    admin.add_view(ModelView(NewLocation, db.session))
 
     # Create database tables
     db.create_all()
 
     # Move newest record from newlocations to locations every 15 minutes
-    database.register_update_job()
+    register_update_job()
 
     # For marshmallow (de)serialization
-    newlocation_schema = database.NewLocationSchema()
-    location_schema = database.LocationSchema()
-    user_schema = database.UserSchema()
+    newlocation_schema = NewLocationSchema()
+    location_schema = LocationSchema()
+    user_schema = UserSchema()
 
     # Initialise login manager
     login_manager.init_app(app)
