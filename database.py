@@ -1,4 +1,6 @@
+import enum
 
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field, SQLAlchemyAutoSchema
 import atexit
@@ -40,16 +42,19 @@ class Location(db.Model):
             return f"[{self.time}]\n\tHuntee {self.name}\n\t{self.lat}, {self.long}"
 
 
-class Role(Enum):
+class Role(enum.Enum):
     huntee = 0
     hunter = 1
     admin = 2
 
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     username = db.Column(db.String, primary_key=True)
     password = db.Column(db.String, unique=False, nullable=False)
-    role = db.Column(Role, unique=False, nullable=False)
+    role = db.Column(Enum(Role), unique=False, nullable=False)
+
+    def get_id(self):
+        return self.username
 
     def __repr__(self):
         return f"{self.role}:\t{self.username}"
@@ -132,7 +137,3 @@ class UserSchema(SQLAlchemySchema):
     class Meta:
         model = User
         load_instance = True
-
-    username = auto_field()
-    password = auto_field()
-    role = auto_field()
