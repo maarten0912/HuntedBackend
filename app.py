@@ -1,10 +1,9 @@
-import random
-import string
 
-from flask import Flask, request, redirect, url_for
+from flask import Flask, request, redirect, url_for, render_template
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, login_user, current_user, login_required
+from flask_socketio import SocketIO
 
 from database import db, User, Role, NewLocation, Location, register_update_job, NewLocationSchema, LocationSchema, \
     UserSchema
@@ -16,6 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hunted.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.app_context().push()
 
+websocket = SocketIO(app)
 
 login_manager = LoginManager()
 
@@ -51,7 +51,10 @@ def login():
 
 @app.route('/')
 def index():
-    return "Hello world", 200
+    if current_user.is_authenticated:
+        return render_template('index.html')
+    else:
+        return render_template('login.html')
 
 
 @app.route('/api/locations', methods=['GET', 'POST'])
@@ -100,4 +103,4 @@ if __name__ == '__main__':
     login_manager.init_app(app)
 
     # TODO: add WSGI for security
-    app.run("0.0.0.0", debug=True)
+    websocket.run(app, "0.0.0.0", debug=True)
