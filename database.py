@@ -1,7 +1,9 @@
+
 from flask_sqlalchemy import SQLAlchemy
-from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field
+from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field, SQLAlchemyAutoSchema
 import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy import Enum
 
 db = SQLAlchemy()
 
@@ -14,7 +16,7 @@ class NewLocation(db.Model):
     name = db.Column(db.String(20), unique=False, nullable=False)
     lat = db.Column(db.Float(), unique=False, nullable=False)
     long = db.Column(db.Float(), unique=False, nullable=False)
- 
+
     def __repr__(self):
         if self.hunter:
             return f"[{self.time}]\tHunter {self.name}\t{self.lat}, {self.long}"
@@ -30,12 +32,27 @@ class Location(db.Model):
     name = db.Column(db.String(20), unique=False, nullable=False)
     lat = db.Column(db.Float(), unique=False, nullable=False)
     long = db.Column(db.Float(), unique=False, nullable=False)
- 
+
     def __repr__(self):
         if self.hunter:
             return f"[{self.time}]\n\tHunter {self.name}\n\t{self.lat}, {self.long}"
         else:
             return f"[{self.time}]\n\tHuntee {self.name}\n\t{self.lat}, {self.long}"
+
+
+class Role(Enum):
+    huntee = 0
+    hunter = 1
+    admin = 2
+
+
+class User(db.Model):
+    username = db.Column(db.String, primary_key=True)
+    password = db.Column(db.String, unique=False, nullable=False)
+    role = db.Column(Role, unique=False, nullable=False)
+
+    def __repr__(self):
+        return f"{self.role}:\t{self.username}"
 
 
 def register_update_job():
@@ -109,3 +126,13 @@ class LocationSchema(SQLAlchemySchema):
     name = auto_field()
     lat = auto_field()
     long = auto_field()
+
+
+class UserSchema(SQLAlchemySchema):
+    class Meta:
+        model = User
+        load_instance = True
+
+    username = auto_field()
+    password = auto_field()
+    role = auto_field()
