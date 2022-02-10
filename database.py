@@ -60,6 +60,9 @@ class User(db.Model, UserMixin):
     def get_id(self):
         return self.username
 
+    def is_admin(self):
+        return self.role == Role.admin
+
     def __repr__(self):
         return f"{self.role}:\t{self.username}"
 

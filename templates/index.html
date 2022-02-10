@@ -31,7 +31,7 @@
 </head>
 <body>
 <main>
-    <h1>Hunted</h1>
+    <h1>Hunted{% if current_user.is_admin() %} ADMIN{% endif %}</h1>
     <div id="map"></div>
 </main>
 <script>
