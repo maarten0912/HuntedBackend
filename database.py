@@ -25,7 +25,8 @@ class NewLocation(db.Model):
             return f"[{self.time}]\tHuntee {self.name}\t{self.lat}, {self.long}"
 
     def to_json(self):
-        return json.dumps({"id": self.id, "lat": self.lat, "long": self.long})
+        user = User.query.filter_by(username=self.name).first()
+        return json.dumps({"id": user.id, "lat": self.lat, "long": self.long})
 
 
 # This table should contain last sent location of each device
@@ -51,6 +52,7 @@ class Role(enum.Enum):
 
 
 class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, primary_key=True)
     password = db.Column(db.String, unique=False, nullable=False)
     role = db.Column(Enum(Role), unique=False, nullable=False)

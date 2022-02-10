@@ -1,9 +1,11 @@
+from datetime import datetime
+from time import time
 
 from flask import Flask, request, redirect, url_for, render_template
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, login_user, current_user, login_required
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room, leave_room
 
 from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
     UserSchema
@@ -65,15 +67,20 @@ def locations():
         # Hunter is trying to view the coordinates
         if current_user.role in {Role.admin, Role.hunter}:
             location = Location.query.all()
-            return {"newlocations": location_schema.dump(location, many=True)}
+            return {"locations": location_schema.dump(location, many=True)}
         else:
             return 'You are not a hunter or admin', 401
 
     elif request.method == 'POST':
-        # TODO: tijd automatisch?
-        # POST
         # Huntee or hunter is posting their location
-        location = newlocation_schema.load(request.get_json(force=True), session=db.session)
+        location = NewLocation(time=datetime.now(), hunter=(current_user.role == Role.hunter),
+                               name=current_user.username, lat=float(request.values["lat"]),
+                               long=float(request.values["long"]))
+
+        # Send to admins
+        emit_admin_websockets("locations", [location.to_json()])
+
+        # Add to database
         db.session.add(location)
         db.session.commit()
         print(location)
@@ -81,9 +88,32 @@ def locations():
         return 'OK', 200
 
 
+@app.route("/test")
+def test():
+    emit_admin_websockets("locations", [{"id": 1, "lat": 52.22, "long": 6.89}])
+    return '', 204
+
+
 def emit_websocket(event: str, message):
     print(f"Emitting: {message}")
     websocket.emit(event, message, namespace="/", broadcast=True)
+
+
+def emit_admin_websockets(event: str, message):
+    print(f"Emitting ADMIN: {message}")
+    websocket.emit(event, message, namespace="/", to="admin")
+
+
+@websocket.on("connect")
+def on_websocket_connect():
+    if current_user.role == Role.admin:
+        join_room("admin")
+
+
+@websocket.on("disconnect")
+def on_websocket_disconnect():
+    if current_user.role == Role.admin:
+        leave_room("admin")
 
 
 @app.before_first_request

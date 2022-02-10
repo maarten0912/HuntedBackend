@@ -60,16 +60,25 @@
         }
     }
 
+    const updateLocations = (locations, json=false) => {
+        for (let location of locations) {
+            if (json)
+                location = JSON.parse(location)
+            setMarker(location.id, location.lat, location.long)
+        }
+    }
+
+    // Get the last positions
+    fetch("/api/locations").then(async res => {
+        const locations = (await res.json())["locations"]
+        console.log(locations)
+        updateLocations(locations)
+    })
+
     // Connect to the websocket
     const socket = io.connect("/")
 
-    socket.on("locations", (locations) => {
-        for (let location of locations) {
-            location = JSON.parse(location)
-            console.log(location)
-            setMarker(location.id, location.lat, location.long)
-        }
-    })
+    socket.on("locations", locs => updateLocations(locs, true))
 </script>
 </body>
 </html>

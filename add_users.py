@@ -16,25 +16,22 @@ db = SQLAlchemy()
 def create_user(username: str, role: str):
     characters = string.ascii_letters + string.digits
     password = ''.join(random.choice(characters) for _ in range(8))
+    user_id = random.randint(0, 99999)
 
-    return database.User(username=username, password=password, role=role)
+    return database.User(id=user_id, username=username, password=password, role=role)
 
 
-def create_bulk_users(filename: str):
-    users = []
-
+def create_users(filename: str):
     with open(filename) as file:
         reader = csv.reader(file, delimiter=',')
         for entry in reader:
             user = create_user(entry[0], entry[1])
             print(f"{user}\t{user.password}")
-            users.append(user)
-
-    return users
+            session.add(user)
 
 
 if __name__ == '__main__':
     engine = create_engine('sqlite:///hunted.db')
     session = Session(engine)
-    session.bulk_save_objects(create_bulk_users(USERS_CSV))
+    create_users(USERS_CSV)
     session.commit()
