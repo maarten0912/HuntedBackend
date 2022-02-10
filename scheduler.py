@@ -1,5 +1,6 @@
 # TODO: send also with websocket
 import atexit
+import json
 from typing import Callable
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -40,10 +41,14 @@ def update_locations(emit_websocket: Callable[[str, any], None], context: AppCon
         db.session.query(Location).delete()
 
         # Put the newest values in Locations
+        # TODO add id based on huntee name
         for loc in newlocs:
             print(loc)
-            emit_websocket("locations", loc)
             db.session.add(Location(time=loc.time, hunter=loc.hunter, name=loc.name, lat=loc.lat, long=loc.long))
+
+        # Send over websocket
+        locations = [loc.to_json() for loc in newlocs]
+        emit_websocket("locations", locations)
 
         db.session.commit()
 

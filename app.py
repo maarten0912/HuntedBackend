@@ -82,7 +82,14 @@ def locations():
 
 
 def emit_websocket(event: str, message):
-    websocket.emit(event, message, namespace="/api/socket", broadcast=True)
+    print(f"Emitting: {message}")
+    websocket.emit(event, message, namespace="/", broadcast=True)
+
+
+@app.before_first_request
+def init():
+    # Move newest record from newlocations to locations every 15 minutes
+    register_update_job(emit_websocket, app.app_context())
 
 
 if __name__ == '__main__':
@@ -96,9 +103,6 @@ if __name__ == '__main__':
     # Create database tables
     db.create_all()
 
-    # Move newest record from newlocations to locations every 15 minutes
-    register_update_job(emit_websocket, app.app_context())
-
     # For marshmallow (de)serialization
     newlocation_schema = NewLocationSchema()
     location_schema = LocationSchema()
@@ -107,5 +111,4 @@ if __name__ == '__main__':
     # Initialise login manager
     login_manager.init_app(app)
 
-    # TODO: add WSGI for security
     websocket.run(app, "0.0.0.0", debug=True)

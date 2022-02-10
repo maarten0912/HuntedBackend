@@ -1,4 +1,5 @@
 import enum
+import json
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
@@ -22,6 +23,9 @@ class NewLocation(db.Model):
             return f"[{self.time}]\tHunter {self.name}\t{self.lat}, {self.long}"
         else:
             return f"[{self.time}]\tHuntee {self.name}\t{self.lat}, {self.long}"
+
+    def to_json(self):
+        return json.dumps({"id": self.id, "lat": self.lat, "long": self.long})
 
 
 # This table should contain last sent location of each device
