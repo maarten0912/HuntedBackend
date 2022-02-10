@@ -5,8 +5,9 @@ from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, login_user, current_user, login_required
 from flask_socketio import SocketIO
 
-from database import db, User, Role, NewLocation, Location, register_update_job, NewLocationSchema, LocationSchema, \
+from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
     UserSchema
+from scheduler import register_update_job
 
 app = Flask(__name__)
 # Change secret key to random string in production
@@ -80,6 +81,10 @@ def locations():
         return 'OK', 200
 
 
+def emit_websocket(event: str, message):
+    websocket.emit(event, message, namespace="/api/socket", broadcast=True)
+
+
 if __name__ == '__main__':
     db.init_app(app)
 
@@ -92,7 +97,7 @@ if __name__ == '__main__':
     db.create_all()
 
     # Move newest record from newlocations to locations every 15 minutes
-    register_update_job()
+    register_update_job(emit_websocket, app.app_context())
 
     # For marshmallow (de)serialization
     newlocation_schema = NewLocationSchema()

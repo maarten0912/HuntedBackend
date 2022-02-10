@@ -2,9 +2,7 @@ import enum
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field, SQLAlchemyAutoSchema
-import atexit
-from apscheduler.schedulers.background import BackgroundScheduler
+from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field
 from sqlalchemy import Enum
 
 db = SQLAlchemy()
@@ -58,53 +56,6 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return f"{self.role}:\t{self.username}"
-
-
-def register_update_job():
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(func=update_locations, trigger="interval", minutes=15, start_date="2022-01-01 12:00:00")
-    scheduler.start()
-
-    # Shut down the scheduler when exiting the app
-    atexit.register(scheduler.shutdown)
-
-
-# TODO: send also with websocket
-def update_locations():
-    import datetime
-    print(datetime.datetime.now())
-
-    newlocations = NewLocation.query.order_by(NewLocation.time.desc()).all()
-    oldlocations = Location.query.order_by(Location.time.desc()).all()
-
-    newnames = []
-    newlocs = []
-    for newlocation in newlocations:
-        if newlocation.name not in newnames:
-            newnames.append(newlocation.name)
-            newlocs.append(newlocation)
-
-    oldnames = []
-    for oldlocation in oldlocations:
-        assert oldlocation.name not in oldnames
-        oldnames.append(oldlocation.name)
-
-    notupdated = list(set(oldnames) - set(newnames))
-    if len(notupdated) > 0:
-        # TODO: put in some kind of log?
-        print("[WARNING] Found names that had no update in the last 15 minutes:")
-        for n in notupdated:
-            print(f"\t{n}")
-
-    # Delete both tables
-    db.session.query(NewLocation).delete()
-    db.session.query(Location).delete()
-
-    # Put the newest values in Locations
-    for loc in newlocs:
-        db.session.add(Location(time=loc.time, hunter=loc.hunter, name=loc.name, lat=loc.lat, long=loc.long))
-
-    db.session.commit()
 
 
 class NewLocationSchema(SQLAlchemySchema):
