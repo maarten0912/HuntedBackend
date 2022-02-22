@@ -64,6 +64,7 @@
         for (let location of locations) {
             if (json)
                 location = JSON.parse(location)
+            console.log(location)
             setMarker(location.id, location.lat, location.long)
         }
     }

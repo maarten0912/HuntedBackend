@@ -1,5 +1,5 @@
 from datetime import datetime
-from time import time
+import eventlet
 
 from flask import Flask, request, redirect, url_for, render_template
 from flask_admin import Admin
@@ -10,6 +10,9 @@ from flask_socketio import SocketIO, join_room, leave_room
 from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
     UserSchema
 from scheduler import register_update_job
+
+# Patch threads etc, to use eventlets
+eventlet.monkey_patch()
 
 app = Flask(__name__)
 # Change secret key to random string in production
