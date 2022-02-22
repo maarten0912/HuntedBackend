@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hunted information</title>
+    <!-- Socket.io -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+            integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+            crossorigin="anonymous"></script>
+
+    <style>
+        #main {
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        .message-item {
+            display: flex;
+        }
+
+        .message-item img {
+            width: 100%;
+        }
+
+        .message-item div:nth-child(1) {
+            margin-right: 5px;
+        }
+
+        .message-item div:nth-child(2) {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body>
+<h1>Welcome to Hunted</h1>
+<div id="main">
+
+</div>
+<script>
+    console.log("nou en")
+
+    const showMessage = (message, timestamp) => {
+        console.log(message)
+        document.getElementById("main").innerHTML +=
+            `<div class="message-item">
+                <div>${(new Date(timestamp).toLocaleTimeString())}</div>
+                <div>${message}</div>
+            </div>`
+    }
+
+    // Get all messages
+    fetch(document.location.origin + "/api/messages").then(async res => {
+        const messages = (await res.json())["messages"]
+        for (const message of messages) {
+            showMessage(message["message"], message["timestamp"])
+        }
+    }).catch(reason => {
+        showMessage(reason, 0)
+    })
+
+    // Connect to the websocket for new messages
+    const socket = io.connect(document.location.origin + "/info-socket")
+
+    socket.on("message", (message) => showMessage(message["message"], message["timestamp"]))
+</script>
+</body>
+</html>

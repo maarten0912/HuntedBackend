@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 import eventlet
 
@@ -8,7 +9,7 @@ from flask_login import LoginManager, login_user, current_user, login_required
 from flask_socketio import SocketIO, join_room, leave_room
 
 from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
-    UserSchema
+    UserSchema, Message, MessageSchema
 from scheduler import register_update_job, change_update_interval
 
 # Patch threads etc, to use eventlets
@@ -63,6 +64,12 @@ def index():
         return render_template('login.html')
 
 
+@app.route('/information')
+@login_required
+def information():
+    return render_template('information.html')
+
+
 @app.route('/api/locations', methods=['GET', 'POST'])
 @login_required
 def locations():
@@ -102,6 +109,35 @@ def update_interval():
             return "You are not an admin", 401
 
 
+@app.route("/api/messages", methods=["GET", "POST"])
+@login_required
+def messages():
+    if request.method == 'GET':
+        # Get the messages for the current users role
+        if current_user.role != Role.admin:
+            message_list = Message.query.filter_by(role=current_user.role).all()
+        else:
+            message_list = Message.query.all()
+        return {"messages": message_schema.dump(message_list, many=True)}
+    elif request.method == 'POST':
+        if current_user.role == Role.admin:
+            timestamp = round(time.time() * 1000)
+            # Save to database
+            message = Message(timestamp=timestamp,
+                              message=request.values["message"],
+                              role=request.values["role"])
+
+            db.session.add(message)
+            db.session.commit()
+
+            # Send to appropriate websockets
+            emit_information(request.values["role"],
+                             {"timestamp": timestamp, "message": request.values["message"]})
+            return '', 204
+        else:
+            return "You are not an admin", 401
+
+
 @app.route("/test")
 def test():
     emit_admin_websockets("locations", [{"id": 1, "lat": 52.22, "long": 6.89}])
@@ -118,10 +154,23 @@ def emit_admin_websockets(event: str, message):
     websocket.emit(event, message, namespace="/", to="admin")
 
 
+def emit_information(room: str, message):
+    print(f"Emitting {room}: {message}")
+    websocket.emit("message", message, namespace="/info-socket", to=room)
+
+
 @websocket.on("connect")
 def on_websocket_connect():
     if current_user.role == Role.admin:
         join_room("admin")
+
+
+@websocket.on("connect", namespace="/info-socket")
+def on_websocket_info_connect():
+    if current_user.role in {Role.admin, Role.huntee}:
+        join_room("huntee")
+    elif current_user.role in {Role.admin, Role.hunter}:
+        join_room("hunter")
 
 
 @websocket.on("disconnect")
@@ -151,6 +200,7 @@ if __name__ == '__main__':
     newlocation_schema = NewLocationSchema()
     location_schema = LocationSchema()
     user_schema = UserSchema()
+    message_schema = MessageSchema()
 
     # Initialise login manager
     login_manager.init_app(app)

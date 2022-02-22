@@ -65,6 +65,7 @@
             if (json)
                 location = JSON.parse(location)
             console.log(location)
+            // TODO, first (non-websocket) location has different id, fix in backend
             setMarker(location.id, location.lat, location.long)
         }
     }

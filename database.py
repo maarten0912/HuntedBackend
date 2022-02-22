@@ -67,6 +67,13 @@ class User(db.Model, UserMixin):
         return f"{self.role}:\t{self.username}"
 
 
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.Integer, unique=False, nullable=False)
+    message = db.Column(db.String, unique=False, nullable=False)
+    role = db.Column(Enum(Role), unique=False, nullable=False)
+
+
 class NewLocationSchema(SQLAlchemySchema):
     class Meta:
         model = NewLocation
@@ -97,3 +104,12 @@ class UserSchema(SQLAlchemySchema):
     class Meta:
         model = User
         load_instance = True
+
+
+class MessageSchema(SQLAlchemySchema):
+    class Meta:
+        model = Message
+        load_instance = True
+
+    timestamp = auto_field()
+    message = auto_field()
