@@ -53,11 +53,20 @@ def update_locations(emit_websocket: Callable[[str, any], None], context: AppCon
         db.session.commit()
 
 
+scheduler = BackgroundScheduler()
+
+
 def register_update_job(emit_websocket: Callable[[str, any], None], context: AppContext):
-    scheduler = BackgroundScheduler()
     scheduler.add_job(func=update_locations, args=[emit_websocket, context],
-                      trigger="interval", seconds=15, start_date="2022-01-01 12:00:00")
+                      trigger="interval", seconds=15, start_date="2022-01-01 12:00:00",
+                      id="locations")
     scheduler.start()
 
     # Shut down the scheduler when exiting the app
     atexit.register(scheduler.shutdown)
+
+
+def change_update_interval(seconds: int):
+    print(f"Setting scheduler to every {seconds} seconds")
+    scheduler.reschedule_job("locations", trigger="interval", seconds=seconds)
+

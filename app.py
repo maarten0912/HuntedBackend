@@ -9,7 +9,7 @@ from flask_socketio import SocketIO, join_room, leave_room
 
 from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
     UserSchema
-from scheduler import register_update_job
+from scheduler import register_update_job, change_update_interval
 
 # Patch threads etc, to use eventlets
 eventlet.monkey_patch()
@@ -89,6 +89,17 @@ def locations():
         print(location)
 
         return 'OK', 200
+
+
+@app.route("/api/admin/interval", methods=["POST"])
+def update_interval():
+    # TODO admin frontend? (curl is ook een frontend, nou en)
+    if request.method == 'POST':
+        if current_user.role == Role.admin:
+            change_update_interval(int(request.values["interval"]))
+            return '', 204
+        else:
+            return "You are not an admin", 401
 
 
 @app.route("/test")
