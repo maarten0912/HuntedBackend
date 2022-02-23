@@ -26,7 +26,7 @@ class NewLocation(db.Model):
 
     def to_json(self):
         user = User.query.filter_by(username=self.name).first()
-        return json.dumps({"id": user.id, "lat": self.lat, "long": self.long})
+        return json.dumps({"id": user.id, "lat": self.lat, "long": self.long, "hunter": self.hunter})
 
 
 # This table should contain last sent location of each device
