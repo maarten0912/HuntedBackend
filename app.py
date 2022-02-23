@@ -89,6 +89,9 @@ def locations():
 
         # Send to admins
         emit_admin_websockets("locations", [location.to_json()])
+        # If this is a hunter, send their location immediately
+        if current_user.role == Role.hunter:
+            emit_websocket("locations", [location.to_json()])
 
         # Add to database
         db.session.add(location)
@@ -182,7 +185,7 @@ def on_websocket_disconnect():
 @app.before_first_request
 def init():
     # Move newest record from newlocations to locations every 15 minutes
-    register_update_job(emit_websocket, app.app_context())
+    register_update_job(emit_websocket, emit_information, app.app_context())
 
 
 if __name__ == '__main__':

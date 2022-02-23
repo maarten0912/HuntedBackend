@@ -9,7 +9,7 @@ from flask.ctx import AppContext
 from database import NewLocation, Location, db
 
 
-def update_locations(emit_websocket: Callable[[str, any], None], context: AppContext):
+def update_locations(emit_websocket: Callable[[str, any], None], emit_information: Callable[[str, str], None], context: AppContext):
     import datetime
     print(datetime.datetime.now())
 
@@ -49,6 +49,8 @@ def update_locations(emit_websocket: Callable[[str, any], None], context: AppCon
         # Send over websocket
         locations = [loc.to_json() for loc in newlocs]
         emit_websocket("locations", locations)
+        # Send to the huntee that the location has been sent
+        emit_information("huntee", "Your location has been sent to the hunters!")
 
         db.session.commit()
 
@@ -56,8 +58,8 @@ def update_locations(emit_websocket: Callable[[str, any], None], context: AppCon
 scheduler = BackgroundScheduler()
 
 
-def register_update_job(emit_websocket: Callable[[str, any], None], context: AppContext):
-    scheduler.add_job(func=update_locations, args=[emit_websocket, context],
+def register_update_job(emit_websocket: Callable[[str, any], None], emit_information: Callable[[str, str], None], context: AppContext):
+    scheduler.add_job(func=update_locations, args=[emit_websocket, emit_information, context],
                       trigger="interval", seconds=15, start_date="2022-01-01 12:00:00",
                       id="locations")
     scheduler.start()
