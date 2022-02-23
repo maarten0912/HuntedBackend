@@ -1,5 +1,7 @@
 import time
 from datetime import datetime
+from typing import Optional
+
 import eventlet
 
 from flask import Flask, request, redirect, url_for, render_template
@@ -135,7 +137,7 @@ def messages():
 
             # Send to appropriate websockets
             emit_information(request.values["role"],
-                             {"timestamp": timestamp, "message": request.values["message"]})
+                             request.values["message"], timestamp)
             return '', 204
         else:
             return "You are not an admin", 401
@@ -157,9 +159,11 @@ def emit_admin_websockets(event: str, message):
     websocket.emit(event, message, namespace="/", to="admin")
 
 
-def emit_information(room: str, message):
+def emit_information(room: str, message: str, timestamp: Optional[int] = None):
     print(f"Emitting {room}: {message}")
-    websocket.emit("message", message, namespace="/info-socket", to=room)
+    if timestamp is None:
+        timestamp = round(time.time() * 1000)
+    websocket.emit("message", {"timestamp": timestamp, "message": message}, namespace="/info-socket", to=room)
 
 
 @websocket.on("connect")
