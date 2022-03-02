@@ -9,6 +9,9 @@ from flask.ctx import AppContext
 
 from database import NewLocation, Location, db, LastUpdate
 
+# Default update interval (in seconds)
+INTERVAL = 600
+
 
 def update_locations(emit_websocket: Callable[[str, any], None], emit_information: Callable[[str, str], None], context: AppContext):
     import datetime
@@ -67,7 +70,7 @@ scheduler = BackgroundScheduler()
 
 def register_update_job(emit_websocket: Callable[[str, any], None], emit_information: Callable[[str, str], None], context: AppContext):
     scheduler.add_job(func=update_locations, args=[emit_websocket, emit_information, context],
-                      trigger="interval", seconds=15, start_date="2022-01-01 12:00:00",
+                      trigger="interval", seconds=INTERVAL, start_date="2022-01-01 12:00:00",
                       id="locations")
     scheduler.start()
 
