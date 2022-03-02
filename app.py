@@ -82,7 +82,7 @@ def locations():
             return {"locations": [loc.to_object() for loc in location]}
         elif current_user.role == Role.admin:
             location = Location.query.all() + NewLocation.query.all()
-            return {"locations": [loc.to_() for loc in location]}
+            return {"locations": [loc.to_object() for loc in location]}
         else:
             return 'You are not a hunter or admin', 401
 
