@@ -78,7 +78,7 @@ def locations():
     if request.method == 'GET':
         # Hunter is trying to view the coordinates
         if current_user.role == Role.hunter:
-            location = Location.query.all()
+            location = Location.query.all() + NewLocation.query.filter_by(hunter=True).all()
             return {"locations": [loc.to_object() for loc in location]}
         elif current_user.role == Role.admin:
             location = Location.query.all() + NewLocation.query.all()
