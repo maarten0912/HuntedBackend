@@ -77,14 +77,21 @@ def information():
 def locations():
     if request.method == 'GET':
         # Hunter is trying to view the coordinates
+        if current_user.role == Role.huntee:
+            return 'You are not a hunter or admin', 401
+        dead = User.query.filter_by(alive=False, role='huntee')
+        dead_ids = {user.id for user in dead}
         if current_user.role == Role.hunter:
             location = Location.query.all() + NewLocation.query.filter_by(hunter=True).all()
+            # Filter out dead people
+            location = [loc for loc in location if loc.id not in dead_ids]
             return {"locations": [loc.to_object() for loc in location]}
         elif current_user.role == Role.admin:
             location = Location.query.all() + NewLocation.query.all()
+            # Filter out dead people
+            location = [loc for loc in location if loc.id not in dead_ids]
             return {"locations": [loc.to_object() for loc in location]}
-        else:
-            return 'You are not a hunter or admin', 401
+
 
     elif request.method == 'POST':
         # Huntee or hunter is posting their location
@@ -153,6 +160,24 @@ def messages():
             return "You are not an admin", 401
 
 
+@app.route("/api/admin/kill", methods=["POST"])
+def kill():
+    if current_user.role == Role.admin:
+        # Get user
+        user = User.query.filter_by(username=request.values["username"]).first()
+        if not User:
+            return "User not found", 400
+        # Kill user
+        user.alive = False
+        db.session.commit()
+        # Send updated user count and kill message
+        emit_websocket("alive", get_alive_count())
+        emit_websocket("kill", user.id)
+        return '', 204
+    else:
+        return "You are not an admin", 401
+
+
 @app.route("/test")
 def test():
     emit_admin_websockets("locations", [{"id": 1, "lat": 52.22, "long": 6.89}])
@@ -176,12 +201,19 @@ def emit_information(room: str, message: str, timestamp: Optional[int] = None):
     websocket.emit("message", {"timestamp": timestamp, "message": message}, namespace="/info-socket", to=room)
 
 
+def get_alive_count():
+    alive = User.query.filter_by(role='huntee', alive=True).all()
+    return len(alive)
+
+
 @websocket.on("connect")
 def on_websocket_connect():
     if current_user.role == Role.admin:
         join_room("admin")
     timestamp = LastUpdate.query.first().timestamp
+    # TODO only send to this user, not to everyone
     emit_websocket("last_update", timestamp)
+    emit_websocket("alive", get_alive_count())
 
 
 @websocket.on("connect", namespace="/info-socket")

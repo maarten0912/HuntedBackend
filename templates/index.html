@@ -100,7 +100,6 @@
     const markers = {}
     const hunters = {}
     let last_update = 0
-    let huntee_count
 
     const hunteeIcon = L.MakiMarkers.icon({icon: "marker", color: "#ff0000", size: "m"})
     const hunterIcons = ["#2fd095", "#bcd130", "#FFBF00", "#4630d1", "#088A08", "#000038", "#B404AE"]
@@ -141,6 +140,10 @@
         }
     }
 
+    const removeLocation = (id) => {
+        map.removeLayer(markers[id])
+    }
+
     const addToLegend = (name, colour) => {
         document.getElementById("legend").innerHTML +=
             `<div class="legend-item">
@@ -160,6 +163,8 @@
 
     socket.on("locations", locs => updateLocations(locs, true))
     socket.on("last_update", timestamp => last_update = timestamp)
+    socket.on("alive", count => document.getElementById("count").innerText = count)
+    socket.on("kill", removeLocation)
 
     const zeroPad = (number) => {
         if (number < 10) {

@@ -72,6 +72,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String, primary_key=True)
     password = db.Column(db.String, unique=False, nullable=False)
     role = db.Column(Enum(Role), unique=False, nullable=False)
+    alive = db.Column(db.Boolean, unique=False, nullable=True, default=True)
 
     def get_id(self):
         return self.username
