@@ -25,7 +25,14 @@ class NewLocation(db.Model):
             return f"[{self.time}]\tHuntee {self.name}\t{self.lat}, {self.long}"
 
     def to_json(self):
-        return json.dumps({"id": self.id, "lat": self.lat, "long": self.long, "hunter": self.hunter})
+        return json.dumps(self.to_object())
+
+    def to_object(self):
+        return {"id": self.id,
+                "lat": self.lat, "long": self.long,
+                "hunter": self.hunter,
+                "name": self.name if self.hunter else None
+                }
 
 
 # This table should contain last sent location of each device
@@ -36,6 +43,16 @@ class Location(db.Model):
     name = db.Column(db.String(20), unique=False, nullable=False)
     lat = db.Column(db.Float(), unique=False, nullable=False)
     long = db.Column(db.Float(), unique=False, nullable=False)
+
+    def to_json(self):
+        return json.dumps(self.to_object())
+
+    def to_object(self):
+        return {"id": self.id,
+                "lat": self.lat, "long": self.long,
+                "hunter": self.hunter,
+                "name": self.name if self.hunter else None
+                }
 
     def __repr__(self):
         if self.hunter:
@@ -122,4 +139,3 @@ class LastUpdateSchema(SQLAlchemySchema):
     class Meta:
         model = LastUpdate
         load_instance = True
-

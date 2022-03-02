@@ -79,10 +79,10 @@ def locations():
         # Hunter is trying to view the coordinates
         if current_user.role == Role.hunter:
             location = Location.query.all()
-            return {"locations": location_schema.dump(location, many=True)}
+            return {"locations": [loc.to_object() for loc in location]}
         elif current_user.role == Role.admin:
             location = Location.query.all() + NewLocation.query.all()
-            return {"locations": location_schema.dump(location, many=True)}
+            return {"locations": [loc.to_() for loc in location]}
         else:
             return 'You are not a hunter or admin', 401
 

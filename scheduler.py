@@ -45,7 +45,6 @@ def update_locations(emit_websocket: Callable[[str, any], None], emit_informatio
         db.session.query(Location).delete()
 
         # Put the newest values in Locations
-        # TODO add id based on huntee name
         for loc in newlocs:
             print(loc)
             db.session.add(Location(id=loc.id, time=loc.time, hunter=loc.hunter, name=loc.name, lat=loc.lat, long=loc.long))
