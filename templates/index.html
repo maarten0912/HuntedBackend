@@ -59,6 +59,15 @@
             margin-right: 2px;
         }
 
+        #admin-settings {
+            margin-top: 50px;
+            width: 350px;
+        }
+
+        .admin-settings {
+            margin-bottom: 10px;
+        }
+
         .hidden {
             display: none;
         }
@@ -66,16 +75,37 @@
 </head>
 <body>
 <header>
-        <h1>Hunted{% if current_user.is_admin() %} ADMIN{% endif %}</h1>
-        <h2 class="hidden">Laatste update: <span id="last_update">00:00</span> geleden</h2>
-    </header>
+    <h1>Hunted{% if current_user.is_admin() %} ADMIN{% endif %}</h1>
+    <h2 class="hidden">Laatste update: <span id="last_update">00:00</span> geleden</h2>
+</header>
 <main>
     <div id="map"></div>
     <div id="legend">
         <h3>Legend:</h3>
         <div class="legend-item">
-            <div class="colour" style="background-color: #ff0000"></div><span>Huntees (<span id="count">0</span> left)</span>
+            <div class="colour" style="background-color: #ff0000"></div>
+            <span>Huntees (<span id="count">0</span> left)</span>
         </div>
+        {% if current_user.is_admin() %}
+            <div id="admin-settings">
+                <div class="admin-settings">
+                    <label>
+                        Location update (seconds)
+                        <input type="number" min="0" style="width: 50px" id="interval">
+                    </label>
+                    <button onclick="update_interval()">Update</button>
+                    <span class="hidden" id="interval-update">Update interval updated!</span>
+                </div>
+                <div class="admin-settings">
+                    <label>
+                        Kill user:
+                        <select id="kill-list">
+                        </select>
+                    </label>
+                    <button onclick="kill()">Kill</button>
+                </div>
+            </div>
+        {% endif %}
     </div>
 </main>
 <script>
@@ -119,7 +149,6 @@
                 // Add the marker
                 marker = L.marker([lat, long], {icon}).addTo(map)
                 marker.bindPopup(`<b>Hunter(s):</b> ${name}`)
-                console.log(icon)
                 // Add to the legend
                 addToLegend(name, '#' + icon.options.color)
             } else {
@@ -164,7 +193,12 @@
     socket.on("locations", locs => updateLocations(locs, true))
     socket.on("last_update", timestamp => last_update = timestamp)
     socket.on("alive", count => document.getElementById("count").innerText = count)
-    socket.on("kill", removeLocation)
+    socket.on("kill", (id) => {
+        removeLocation(id)
+        {% if current_user.is_admin() %}
+            update_huntees()
+        {% endif %}
+    })
 
     const zeroPad = (number) => {
         if (number < 10) {
@@ -186,6 +220,48 @@
             `${minutes}:${seconds}`
         document.getElementById("last_update").parentElement.classList.remove("hidden")
     }, 1000)
+
+    {% if current_user.is_admin() %}
+        // Get a list of users and add the huntees to the dropdown
+        const update_huntees = () => {
+            fetch("/api/admin/users").then(async res => {
+                const users = (await res.json())["users"]
+                const selector = document.getElementById("kill-list")
+                // Remove old options
+                while (selector.firstChild) {
+                    selector.removeChild(selector.firstChild)
+                }
+                // Add new options
+                users.filter(user => user["role"] === "0").forEach(user => {
+                    const option = document.createElement("option")
+                    option.value = user["username"]
+                    option.text = `${user["username"]} (${user["alive"] ? "alive" : "dead"})`
+                    selector.add(option)
+                })
+            })
+        }
+        update_huntees()
+
+        const kill = async () => {
+            const username = document.getElementById("kill-list").value
+            const data = new FormData()
+            data.append('username', username)
+            await fetch("/api/admin/kill", {method: 'POST', body: data})
+            update_huntees()
+        }
+
+        const update_interval = async () => {
+            const interval = document.getElementById("interval").value
+            const data = new FormData()
+            data.append('interval', interval)
+            await fetch("/api/admin/interval", {method: 'POST', body: data})
+            document.getElementById("interval-update").classList.remove("hidden")
+            setTimeout(() => {
+                document.getElementById("interval-update").classList.add("hidden")
+            }, 5000)
+        }
+
+    {% endif %}
 </script>
 </body>
 </html>

@@ -61,7 +61,7 @@ class Location(db.Model):
             return f"[{self.time}]\n\tHuntee {self.name}\n\t{self.lat}, {self.long}"
 
 
-class Role(enum.Enum):
+class Role(str, enum.Enum):
     huntee = 0
     hunter = 1
     admin = 2
@@ -125,6 +125,11 @@ class UserSchema(SQLAlchemySchema):
     class Meta:
         model = User
         load_instance = True
+
+    id = auto_field()
+    username = auto_field()
+    role = auto_field()
+    alive = auto_field()
 
 
 class MessageSchema(SQLAlchemySchema):

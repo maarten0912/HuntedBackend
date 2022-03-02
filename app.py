@@ -10,6 +10,7 @@ from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, login_user, current_user, login_required
 from flask_socketio import SocketIO, join_room, leave_room
 
+import scheduler
 from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
     UserSchema, Message, MessageSchema, LastUpdate
 from scheduler import register_update_job, change_update_interval
@@ -92,7 +93,6 @@ def locations():
             location = [loc for loc in location if loc.id not in dead_ids]
             return {"locations": [loc.to_object() for loc in location]}
 
-
     elif request.method == 'POST':
         # Huntee or hunter is posting their location
         # Update or insert new location
@@ -122,7 +122,6 @@ def locations():
 
 @app.route("/api/admin/interval", methods=["POST"])
 def update_interval():
-    # TODO admin frontend? (curl is ook een frontend, nou en)
     if request.method == 'POST':
         if current_user.role == Role.admin:
             change_update_interval(int(request.values["interval"]))
@@ -161,6 +160,7 @@ def messages():
 
 
 @app.route("/api/admin/kill", methods=["POST"])
+@login_required
 def kill():
     if current_user.role == Role.admin:
         # Get user
@@ -176,6 +176,14 @@ def kill():
         return '', 204
     else:
         return "You are not an admin", 401
+
+
+@app.route("/api/admin/users")
+@login_required
+def get_users():
+    if current_user.role == Role.admin:
+        users = User.query.all()
+        return {"users": user_schema.dump(users, many=True)}
 
 
 @app.route("/test")
