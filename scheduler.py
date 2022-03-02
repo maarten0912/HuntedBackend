@@ -1,12 +1,13 @@
 # TODO: send also with websocket
 import atexit
 import json
+import time
 from typing import Callable
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask.ctx import AppContext
 
-from database import NewLocation, Location, db
+from database import NewLocation, Location, db, LastUpdate
 
 
 def update_locations(emit_websocket: Callable[[str, any], None], emit_information: Callable[[str, str], None], context: AppContext):
@@ -52,7 +53,13 @@ def update_locations(emit_websocket: Callable[[str, any], None], emit_informatio
         # Send to the huntee that the location has been sent
         emit_information("huntee", "Your location has been sent to the hunters!")
 
+        # Save the time of this update
+        timestamp = round(time.time() * 1000)
+        last_update = LastUpdate.query.first()
+        last_update.timestamp = timestamp
         db.session.commit()
+        # Send over websocket
+        emit_websocket("last_update", timestamp)
 
 
 scheduler = BackgroundScheduler()

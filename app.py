@@ -11,7 +11,7 @@ from flask_login import LoginManager, login_user, current_user, login_required
 from flask_socketio import SocketIO, join_room, leave_room
 
 from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
-    UserSchema, Message, MessageSchema
+    UserSchema, Message, MessageSchema, LastUpdate
 from scheduler import register_update_job, change_update_interval
 
 # Patch threads etc, to use eventlets
@@ -170,6 +170,8 @@ def emit_information(room: str, message: str, timestamp: Optional[int] = None):
 def on_websocket_connect():
     if current_user.role == Role.admin:
         join_room("admin")
+    timestamp = LastUpdate.query.first().timestamp
+    emit_websocket("last_update", timestamp)
 
 
 @websocket.on("connect", namespace="/info-socket")
@@ -202,6 +204,14 @@ if __name__ == '__main__':
 
     # Create database tables
     db.create_all()
+
+    # Create needed entries, if necessary
+    last_update = LastUpdate.query.first()
+    if not last_update:
+        last_update = LastUpdate(timestamp=0)
+        db.session.add(last_update)
+        db.session.commit()
+
 
     # For marshmallow (de)serialization
     newlocation_schema = NewLocationSchema()

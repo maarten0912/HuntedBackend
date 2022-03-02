@@ -74,6 +74,10 @@ class Message(db.Model):
     role = db.Column(Enum(Role), unique=False, nullable=False)
 
 
+class LastUpdate(db.Model):
+    timestamp = db.Column(db.Integer, primary_key=True)
+
+
 class NewLocationSchema(SQLAlchemySchema):
     class Meta:
         model = NewLocation
@@ -113,3 +117,10 @@ class MessageSchema(SQLAlchemySchema):
 
     timestamp = auto_field()
     message = auto_field()
+
+
+class LastUpdateSchema(SQLAlchemySchema):
+    class Meta:
+        model = LastUpdate
+        load_instance = True
+

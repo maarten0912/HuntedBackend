@@ -14,24 +14,43 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
             integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
             crossorigin=""></script>
+    <!-- Moment -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"
+            integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <style>
         body {
             margin: 0;
         }
+
         main {
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         #map {
             flex-grow: 1;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
 <main>
+<header>
     <h1>Hunted{% if current_user.is_admin() %} ADMIN{% endif %}</h1>
+    <h2 class="hidden">Laatste update: <span id="last_update">00:00</span> geleden</h2>
+</header>
     <div id="map"></div>
 </main>
 <script>
@@ -77,7 +96,7 @@
         }
     }
 
-    const updateLocations = (locations, json=false) => {
+    const updateLocations = (locations, json = false) => {
         for (let location of locations) {
             if (json)
                 location = JSON.parse(location)
@@ -94,10 +113,38 @@
         updateLocations(locations)
     })
 
+    // Get the last update time
+    let last_update = Date.now()
+    fetch("/api/last_update").then(async res => {
+        last_update = await res.text()
+    })
+
     // Connect to the websocket
     const socket = io.connect("/")
 
     socket.on("locations", locs => updateLocations(locs, true))
+    socket.on("last_update", timestamp => last_update = timestamp)
+
+    const zeroPad = (number) => {
+        if (number < 10) {
+            return "0" + number
+        } else {
+            return number
+        }
+    }
+
+    // Update the time since the last update
+    setInterval(() => {
+        const diff = moment.duration(moment().diff(moment(last_update)))
+        if (!diff._isValid) {
+            return
+        }
+        const minutes = zeroPad(Math.floor(diff.asMinutes()))
+        const seconds = zeroPad(Math.floor(diff.asSeconds() % 60))
+        document.getElementById("last_update").innerText =
+            `${minutes}:${seconds}`
+        document.getElementById("last_update").parentElement.classList.remove("hidden")
+    }, 1000)
 </script>
 </body>
 </html>
