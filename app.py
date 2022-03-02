@@ -77,18 +77,28 @@ def information():
 def locations():
     if request.method == 'GET':
         # Hunter is trying to view the coordinates
-        if current_user.role in {Role.admin, Role.hunter}:
+        if current_user.role == Role.hunter:
             location = Location.query.all()
+            return {"locations": location_schema.dump(location, many=True)}
+        elif current_user.role == Role.admin:
+            location = Location.query.all() + NewLocation.query.all()
             return {"locations": location_schema.dump(location, many=True)}
         else:
             return 'You are not a hunter or admin', 401
 
     elif request.method == 'POST':
         # Huntee or hunter is posting their location
-        location = NewLocation(time=datetime.now(), hunter=(current_user.role == Role.hunter),
-                               name=current_user.username, lat=float(request.values["lat"]),
-                               long=float(request.values["long"]))
-
+        # Update or insert new location
+        location = NewLocation.query.filter_by(id=current_user.id).first()
+        if not location:
+            location = NewLocation(id=current_user.id,
+                                   time=datetime.now(), hunter=(current_user.role == Role.hunter),
+                                   name=current_user.username, lat=float(request.values["lat"]),
+                                   long=float(request.values["long"]))
+        else:
+            location.time = datetime.now()
+            location.lat = float(request.values["lat"])
+            location.long = float(request.values["long"])
         # Send to admins
         emit_admin_websockets("locations", [location.to_json()])
         # If this is a hunter, send their location immediately

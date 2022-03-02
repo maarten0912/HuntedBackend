@@ -48,7 +48,7 @@ def update_locations(emit_websocket: Callable[[str, any], None], emit_informatio
         # TODO add id based on huntee name
         for loc in newlocs:
             print(loc)
-            db.session.add(Location(time=loc.time, hunter=loc.hunter, name=loc.name, lat=loc.lat, long=loc.long))
+            db.session.add(Location(id=loc.id, time=loc.time, hunter=loc.hunter, name=loc.name, lat=loc.lat, long=loc.long))
 
         # Send over websocket
         locations = [loc.to_json() for loc in newlocs]
