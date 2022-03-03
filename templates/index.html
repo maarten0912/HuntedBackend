@@ -43,6 +43,11 @@
             flex-grow: 1;
         }
 
+        #sidebar {
+            display: flex;
+            flex-direction: column;
+        }
+
         #legend {
             display: flex;
             flex-direction: column;
@@ -71,6 +76,11 @@
         .hidden {
             display: none;
         }
+
+        .small {
+            font-size: 0.8em;
+            width: 150px;
+        }
     </style>
 </head>
 <body>
@@ -80,11 +90,17 @@
 </header>
 <main>
     <div id="map"></div>
-    <div id="legend">
+    <div id="sidebar">
         <h3>Legend:</h3>
-        <div class="legend-item">
-            <div class="colour" style="background-color: #ff0000"></div>
-            <span>Huntees (<span id="count">0</span> left)</span>
+        <div id="legend">
+            <div class="legend-item">
+                <div class="colour" style="background-color: #ff0000"></div>
+                <span>Huntees (<span id="count">0</span> left)</span>
+            </div>
+            <div class="legend-item">
+                <div class="colour" style="background-color: #ff9898"></div>
+                <span class="small">Huntees with skipped location update</span>
+            </div>
         </div>
         {% if current_user.is_admin() %}
             <div id="admin-settings">
@@ -132,6 +148,7 @@
     let last_update = 0
 
     const hunteeIcon = L.MakiMarkers.icon({icon: "marker", color: "#ff0000", size: "m"})
+    const hunteeIconSkipped = L.MakiMarkers.icon({icon: "marker", color: "#ff9898", size: "m"})
     const hunterIcons = ["#2fd095", "#bcd130", "#FFBF00", "#4630d1", "#088A08", "#000038", "#B404AE"]
         .map(color => L.MakiMarkers.icon({icon: "car", color, size: "m"}))
 
@@ -139,6 +156,10 @@
         // If this marker was already added, move it
         if (markers.hasOwnProperty(id)) {
             markers[id].setLatLng([lat, long])
+            if (!hunter) {
+                // Explicitly set the icon to the huntee icon (it might have changed to the skipped icon)
+                markers[id].setIcon(hunteeIcon)
+            }
         } else {
             let marker;
             if (hunter) {
@@ -180,11 +201,20 @@
             </div>`
     }
 
+    const setSkipped = (skipIds) => {
+        for (const skippedId of skipIds) {
+            if (markers[skippedId].options.icon === hunteeIcon) {
+                markers[skippedId].setIcon(hunteeIconSkipped)
+            }
+        }
+    }
+
     // Get the last positions
     fetch("/api/locations").then(async res => {
-        const locations = (await res.json())["locations"]
-        console.log(locations)
-        updateLocations(locations)
+        const result = await res.json()
+        console.log(result)
+        updateLocations(result["locations"])
+        setSkipped(result["skipped"])
     })
 
     // Connect to the websocket
@@ -199,6 +229,7 @@
             update_huntees()
         {% endif %}
     })
+    socket.on("skipped", setSkipped)
 
     const zeroPad = (number) => {
         if (number < 10) {

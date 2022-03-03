@@ -95,6 +95,11 @@ class LastUpdate(db.Model):
     timestamp = db.Column(db.Integer, primary_key=True)
 
 
+class SkipUpdate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.Integer, unique=False, nullable=False)
+
+
 class NewLocationSchema(SQLAlchemySchema):
     class Meta:
         model = NewLocation
@@ -144,4 +149,10 @@ class MessageSchema(SQLAlchemySchema):
 class LastUpdateSchema(SQLAlchemySchema):
     class Meta:
         model = LastUpdate
+        load_instance = True
+
+
+class SkipUpdateSchema(SQLAlchemySchema):
+    class Meta:
+        model = SkipUpdate
         load_instance = True

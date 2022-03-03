@@ -12,7 +12,7 @@ from flask_socketio import SocketIO, join_room, leave_room
 
 import scheduler
 from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
-    UserSchema, Message, MessageSchema, LastUpdate
+    UserSchema, Message, MessageSchema, LastUpdate, SkipUpdate
 from scheduler import register_update_job, change_update_interval
 
 # Patch threads etc, to use eventlets
@@ -86,7 +86,15 @@ def locations():
             location = Location.query.all() + NewLocation.query.filter_by(hunter=True).all()
             # Filter out dead people
             location = [loc for loc in location if loc.id not in dead_ids]
-            return {"locations": [loc.to_object() for loc in location]}
+
+            # Get a list of skipped locations
+            last_update = LastUpdate.query.first().timestamp
+            skipped = [loc for loc in location if datetime.timestamp(loc.time) < last_update]
+
+            return {
+                "locations": [loc.to_object() for loc in location],
+                "skipped": [skip.id for skip in skipped]
+            }
         elif current_user.role == Role.admin:
             location = Location.query.all() + NewLocation.query.all()
             # Filter out dead people
@@ -184,12 +192,25 @@ def get_users():
     if current_user.role == Role.admin:
         users = User.query.all()
         return {"users": user_schema.dump(users, many=True)}
+    else:
+        return "You are not an admin", 401
 
 
-@app.route("/test")
-def test():
-    emit_admin_websockets("locations", [{"id": 1, "lat": 52.22, "long": 6.89}])
-    return '', 204
+@app.route("/api/admin/skip", methods=["POST"])
+@login_required
+def skip_location():
+    if current_user.role == Role.admin:
+        # Get user
+        user = User.query.filter_by(username=request.values["username"]).first()
+        if not User:
+            return "User not found", 400
+        skip = SkipUpdate(id=user.id, timestamp=round(time.time() * 1000))
+        db.session.add(skip)
+        db.session.commit()
+
+        return '', 204
+    else:
+        return "You are not an admin", 401
 
 
 def emit_websocket(event: str, message):
@@ -244,7 +265,7 @@ def init():
     register_update_job(emit_websocket, emit_information, app.app_context())
 
 
-if __name__ == '__main__':
+def main():
     db.init_app(app)
 
     # TODO: turn on some form of authentication here
@@ -262,14 +283,18 @@ if __name__ == '__main__':
         db.session.add(last_update)
         db.session.commit()
 
+    # Initialise login manager
+    login_manager.init_app(app)
 
+    websocket.run(app, "0.0.0.0", debug=True)
+
+
+if __name__ == '__main__':
     # For marshmallow (de)serialization
     newlocation_schema = NewLocationSchema()
     location_schema = LocationSchema()
     user_schema = UserSchema()
     message_schema = MessageSchema()
 
-    # Initialise login manager
-    login_manager.init_app(app)
+    main()
 
-    websocket.run(app, "0.0.0.0", debug=True)
