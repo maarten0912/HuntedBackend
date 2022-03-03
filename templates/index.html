@@ -120,6 +120,15 @@
                     </label>
                     <button onclick="kill()">Kill</button>
                 </div>
+                <div class="admin-settings">
+                    <label>
+                        Skip user location:
+                        <select id="skip-list">
+                        </select>
+                    </label>
+                    <button onclick="skip_update()">Skip</button>
+                    <span class="hidden" id="skip-update">Location update of <span id="skip-update-name"></span> will be skipped!</span>
+                </div>
             </div>
         {% endif %}
     </div>
@@ -257,17 +266,28 @@
         const update_huntees = () => {
             fetch("/api/admin/users").then(async res => {
                 const users = (await res.json())["users"]
-                const selector = document.getElementById("kill-list")
+                const killSelector = document.getElementById("kill-list")
+                const skipSelector = document.getElementById("skip-list")
                 // Remove old options
-                while (selector.firstChild) {
-                    selector.removeChild(selector.firstChild)
+                while (killSelector.firstChild) {
+                    killSelector.removeChild(killSelector.firstChild)
+                }
+                while (skipSelector.firstChild) {
+                    skipSelector.removeChild(skipSelector.firstChild)
                 }
                 // Add new options
                 users.filter(user => user["role"] === "0").forEach(user => {
-                    const option = document.createElement("option")
-                    option.value = user["username"]
-                    option.text = `${user["username"]} (${user["alive"] ? "alive" : "dead"})`
-                    selector.add(option)
+                    const killOption = document.createElement("option")
+                    killOption.value = user["username"]
+                    killOption.text = `${user["username"]} (${user["alive"] ? "alive" : "dead"})`
+                    killSelector.add(killOption)
+
+                    if (user["alive"]) {
+                        const skipOption = document.createElement("option")
+                        skipOption.value = user["username"]
+                        skipOption.text = user["username"]
+                        skipSelector.add(skipOption)
+                    }
                 })
             })
         }
@@ -279,6 +299,18 @@
             data.append('username', username)
             await fetch("/api/admin/kill", {method: 'POST', body: data})
             update_huntees()
+        }
+
+        const skip_update = async () => {
+            const username = document.getElementById("skip-list").value
+            const data = new FormData()
+            data.append('username', username)
+            await fetch("/api/admin/skip", {method: 'POST', body: data})
+            document.getElementById("skip-update-name").innerText = username
+            document.getElementById("skip-update").classList.remove("hidden")
+            setTimeout(() => {
+                document.getElementById("skip-update").classList.add("hidden")
+            }, 5000)
         }
 
         const update_interval = async () => {
