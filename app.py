@@ -235,6 +235,8 @@ def add_points():
                 return "User is not part of a team", 400
             team.points = team.points + int(request.values["points"])
             db.session.commit()
+            emit_information(team.id, f"You now have {team.points} challenge points, with 3 points you can "
+                                      f"request to skip sending your locations to the hunters.")
 
             return '', 204
         else:
@@ -277,6 +279,10 @@ def on_websocket_connect():
 def on_websocket_info_connect():
     if current_user.role in {Role.admin, Role.huntee}:
         join_room("huntee")
+        # Join team room as wel
+        team = Team.query.filter_by(id=current_user.team).first()
+        if team:
+            join_room(team.id)
     elif current_user.role in {Role.admin, Role.hunter}:
         join_room("hunter")
 
