@@ -10,7 +10,7 @@ from flask.ctx import AppContext
 from database import NewLocation, Location, db, LastUpdate, SkipUpdate
 
 # Default update interval (in seconds)
-interval = 40000
+interval = 600
 
 
 def update_locations(emit_websocket: Callable[[str, any], None], emit_information: Callable[[str, str], None], context: AppContext):

@@ -66,7 +66,8 @@
 
         #admin-settings {
             margin-top: 50px;
-            width: 350px;
+            min-width: 350px;
+            width: 20vw;
         }
 
         .admin-settings {
@@ -75,6 +76,15 @@
 
         .hidden {
             display: none;
+        }
+
+        #teams {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #points-value {
+            width: 30px;
         }
 
         .small {
@@ -128,6 +138,19 @@
                     </label>
                     <button onclick="skip_update()">Skip</button>
                     <span class="hidden" id="skip-update">Location update of <span id="skip-update-name"></span> will be skipped!</span>
+                </div>
+                <div class="admin-settings">
+                    <h4>Teams: <button onclick="get_teams()">Refresh</button></h4>
+                    <div id="teams">
+
+                    </div>
+                    <label>
+                        <br/>Add points:<br/>
+                        <select id="points-list">
+                        </select>
+                    </label>
+                    <input type="number" value="0" id="points-value">
+                    <button onclick="addPoints()">Add</button>
                 </div>
             </div>
         {% endif %}
@@ -223,7 +246,8 @@
         const result = await res.json()
         console.log(result)
         updateLocations(result["locations"])
-        setSkipped(result["skipped"])
+        if (result["skipped"])
+            setSkipped(result["skipped"])
     })
 
     // Connect to the websocket
@@ -262,19 +286,24 @@
     }, 1000)
 
     {% if current_user.is_admin() %}
+        const removeChildren = (parent) => {
+            while (parent.firstChild) {
+                    parent.removeChild(parent.firstChild)
+                }
+        }
+
+
         // Get a list of users and add the huntees to the dropdown
         const update_huntees = () => {
             fetch("/api/admin/users").then(async res => {
                 const users = (await res.json())["users"]
                 const killSelector = document.getElementById("kill-list")
                 const skipSelector = document.getElementById("skip-list")
+                const pointsSelector = document.getElementById("points-list")
                 // Remove old options
-                while (killSelector.firstChild) {
-                    killSelector.removeChild(killSelector.firstChild)
-                }
-                while (skipSelector.firstChild) {
-                    skipSelector.removeChild(skipSelector.firstChild)
-                }
+                removeChildren(killSelector)
+                removeChildren(skipSelector)
+                removeChildren(pointsSelector)
                 // Add new options
                 users.filter(user => user["role"] === "0").forEach(user => {
                     const killOption = document.createElement("option")
@@ -287,6 +316,13 @@
                         skipOption.value = user["username"]
                         skipOption.text = user["username"]
                         skipSelector.add(skipOption)
+                    }
+
+                    if (user["team"]) {
+                        const pointsOption = document.createElement("option")
+                        pointsOption.value = user["username"]
+                        pointsOption.text = `${user["username"]} (team ${user["team"]})`
+                        pointsSelector.add(pointsOption)
                     }
                 })
             })
@@ -324,6 +360,25 @@
             }, 5000)
         }
 
+        const get_teams = async () => {
+            const res = await (await fetch("/api/points")).json()
+            document.getElementById("teams").innerHTML = ""
+            for (const team of res["teams"]) {
+                document.getElementById("teams").innerHTML +=
+                    `<span>Team ${team["id"]}: ${team["points"]}</span>`
+            }
+        }
+        get_teams()
+
+        const addPoints = async () => {
+            const username = document.getElementById("points-list").value
+            const points = document.getElementById("points-value").value
+            const data = new FormData()
+            data.append('username', username)
+            data.append('points', points)
+            await fetch("/api/points", {method: 'POST', body: data})
+            await get_teams()
+        }
     {% endif %}
 </script>
 </body>

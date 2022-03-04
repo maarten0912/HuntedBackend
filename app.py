@@ -10,9 +10,8 @@ from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, login_user, current_user, login_required
 from flask_socketio import SocketIO, join_room, leave_room
 
-import scheduler
 from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
-    UserSchema, Message, MessageSchema, LastUpdate, SkipUpdate
+    UserSchema, Message, MessageSchema, LastUpdate, SkipUpdate, Team, TeamSchema
 from scheduler import register_update_job, change_update_interval
 
 # Patch threads etc, to use eventlets
@@ -213,6 +212,35 @@ def skip_location():
         return "You are not an admin", 401
 
 
+@app.route("/api/points", methods=["GET", "POST"])
+@login_required
+def add_points():
+    if request.method == "GET":
+        if current_user.role == Role.admin:
+            teams = Team.query.all()
+            return {"teams": team_schema.dump(teams, many=True)}
+        else:
+            team = Team.query.filter_by(id=current_user.team).first()
+            if not team:
+                return "You are not part of a team", 400
+            return str(team.points)
+    elif request.method == "POST":
+        if current_user.role == Role.admin:
+            # Get user
+            user = User.query.filter_by(username=request.values["username"]).first()
+            if not user:
+                return "User not found", 400
+            team = Team.query.filter_by(id=user.team).first()
+            if not team:
+                return "User is not part of a team", 400
+            team.points = team.points + int(request.values["points"])
+            db.session.commit()
+
+            return '', 204
+        else:
+            return "You are not an admin", 401
+
+
 def emit_websocket(event: str, message):
     print(f"Emitting: {message}")
     websocket.emit(event, message, namespace="/", broadcast=True)
@@ -295,6 +323,7 @@ if __name__ == '__main__':
     location_schema = LocationSchema()
     user_schema = UserSchema()
     message_schema = MessageSchema()
+    team_schema = TeamSchema()
 
     main()
 

@@ -73,6 +73,7 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String, unique=False, nullable=False)
     role = db.Column(Enum(Role), unique=False, nullable=False)
     alive = db.Column(db.Boolean, unique=False, nullable=True, default=True)
+    team = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True, default=None)
 
     def get_id(self):
         return self.username
@@ -82,6 +83,12 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return f"{self.role}:\t{self.username}"
+
+
+class Team(db.Model):
+    __tablename__ = 'team'
+    id = db.Column(db.Integer, primary_key=True)
+    points = db.Column(db.Integer, nullable=False, default=0)
 
 
 class Message(db.Model):
@@ -135,6 +142,16 @@ class UserSchema(SQLAlchemySchema):
     username = auto_field()
     role = auto_field()
     alive = auto_field()
+    team = auto_field()
+
+
+class TeamSchema(SQLAlchemySchema):
+    class Meta:
+        model = Team
+        load_instance = True
+
+    id = auto_field()
+    points = auto_field()
 
 
 class MessageSchema(SQLAlchemySchema):
