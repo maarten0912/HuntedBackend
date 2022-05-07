@@ -34,7 +34,7 @@
         }
 
         header {
-            display: flex;
+            display: {% if current_user.is_admin() %}flex{% else %}none{% endif %};
             justify-content: space-between;
             align-items: center;
         }
@@ -49,7 +49,7 @@
         }
 
         #sidebar {
-            display: flex;
+            display: {% if current_user.is_admin() %}flex{% else %}none{% endif %};
             flex-direction: column;
         }
 
@@ -165,7 +165,7 @@
     const TOKEN = 'pk.eyJ1IjoiZGF2dm9zMTEiLCJhIjoiY2t6aDV4eDJ6MTZ6bDJwbnJtd3o2dTg5YyJ9.X6wNGp1VG0Zkr3xUwHYNeg'
 
     // Draw the map
-    const map = L.map('map').setView([52.22, 6.89], 14)
+    const map = L.map('map').setView([52.243, 6.855], 15)
 
     {# TODO restrict mapbox access token to url #}
     L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {

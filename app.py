@@ -7,7 +7,7 @@ import eventlet
 from flask import Flask, request, redirect, url_for, render_template
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
-from flask_login import LoginManager, login_user, current_user, login_required
+from flask_login import LoginManager, login_user, current_user, login_required, logout_user
 from flask_socketio import SocketIO, join_room, leave_room
 
 from database import db, User, Role, NewLocation, Location, NewLocationSchema, LocationSchema, \
@@ -45,7 +45,10 @@ def login():
             username = request.values['username']
             password = request.values['password']
         except KeyError:
-            return "Please specify a username and password", 400
+            # When no user is specified, log in as the anonymous user
+            user = User.query.filter_by(id=1).first()
+            login_user(user)
+            return redirect(request.values.get('next') or url_for('index'))
 
         # Get user object and verify password
         user = load_user(username)
@@ -60,10 +63,16 @@ def login():
 
 @app.route('/')
 def index():
-    if current_user.is_authenticated:
-        return render_template('index.html')
-    else:
-        return render_template('login.html')
+    # Log in as the anonymous user
+    user = User.query.filter_by(id=1).first()
+    login_user(user)
+    return render_template('index.html')
+
+
+@app.route('/login')
+def login_page():
+    logout_user()
+    return render_template('login.html')
 
 
 @app.route('/information')
@@ -101,6 +110,10 @@ def locations():
             return {"locations": [loc.to_object() for loc in location]}
 
     elif request.method == 'POST':
+        # The anonymous user cannot post their location
+        if current_user.id == 1:
+            return "You are not allowed to post your location", 403
+
         # Huntee or hunter is posting their location
         # Update or insert new location
         location = NewLocation.query.filter_by(id=current_user.id).first()
