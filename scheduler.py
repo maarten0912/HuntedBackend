@@ -47,6 +47,7 @@ def update_locations(emit_websocket: Callable[[str, any], None], emit_informatio
 
         # Get list of locations that we should skip
         skips = {skip.id for skip in SkipUpdate.query.all()}
+        # TODO also skip dead huntees, or send list of dead people over websocket again
 
         # Update the Locations table
         for newloc in newlocs:
