@@ -187,7 +187,7 @@
     const hunteeIcon = L.MakiMarkers.icon({icon: "marker", color: "#ff0000", size: "m"})
     const hunteeIconSkipped = L.MakiMarkers.icon({icon: "marker", color: "#ff9898", size: "m"})
     const hunterIcons = ["#2fd095", "#bcd130", "#FFBF00", "#4630d1", "#088A08", "#000038", "#B404AE"]
-        .map(color => L.MakiMarkers.icon({icon: "car", color, size: "m"}))
+        .map(color => L.MakiMarkers.icon({icon: "caution", color, size: "m"}))
 
     const setMarker = (id, lat, long, hunter, name) => {
         // If this marker was already added, move it
